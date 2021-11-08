@@ -2,10 +2,12 @@
 
 module Common where
 
+import Control.Monad (when)
 import Control.Concurrent
 import Control.Concurrent.Async
 import Control.Concurrent.MVar
 import Data.Time
+import System.Directory (doesFileExist, removeFile)
 import System.Mem (performGC)
 import Text.Printf
 
@@ -39,7 +41,7 @@ spsc setup producer consumer = do
       footer start end
 
 -- Multiple-producers single-consumer helper.
-mpsc :: IO a -> (a -> IO ()) -> (a -> MVar () -> IO ()) -> IO ()
+mpsc :: IO a -> (a -> IO ()) -> (a -> MVar () -> IO c) -> IO ()
 mpsc setup producer consumer = do
   (r, consumerFinished, start) <- header setup
   withAsync (producer r) $ \ap1 ->
@@ -79,3 +81,8 @@ footer start end = do
   -- Just maxTransactions <- percentile 100.0 histo
   -- printf "%-25.25s%10.2f\n" "Max concurrent txs" maxTransactions
   -- printf "%-25.25s%10.2f ns\n" "Latency" ((meanTransactions / throughput) * 1000000)
+
+cleanup :: FilePath -> IO ()
+cleanup fp = do
+  b <- doesFileExist fp
+  when b (removeFile fp)

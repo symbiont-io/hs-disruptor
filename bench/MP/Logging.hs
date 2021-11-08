@@ -18,7 +18,7 @@ lOG_MESSAGE :: ByteString
 lOG_MESSAGE = BS.pack "some random string to log\n"
 
 lOG_FILE :: FilePath
-lOG_FILE = "/tmp/disruptor.log"
+lOG_FILE = "/tmp/hs-disruptor-bench-mp-logger.log"
 
 data Buffer = Buffer
   { bufferCapacity :: !Int
@@ -46,7 +46,9 @@ flushBuffer buf h = do
 main :: IO ()
 main = mpsc setup producer consumer
   where
-    setup = newRingBuffer bUFFER_CAPACITY
+    setup = do
+      cleanup lOG_FILE
+      newRingBuffer bUFFER_CAPACITY
 
     producer :: RingBuffer ByteString -> IO ()
     producer rb = go iTERATIONS

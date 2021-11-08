@@ -43,6 +43,7 @@ data RingBuffer e = RingBuffer
   -- | References to the last consumers' sequence numbers, used in order to
   -- avoid wrapping the buffer and overwriting events that have not been
   -- consumed yet.
+  -- TODO: use vector instead of list.
   , rbGatingSequences :: {-# UNPACK #-} !(IORef [IORef SequenceNumber])
   -- | Cached value of computing the last consumers' sequence numbers using the
   -- above references.
@@ -92,8 +93,10 @@ setCachedGatingSequence rb = writeIORef (rbCachedGatingSequence rb)
 setAvailable :: RingBuffer e -> SequenceNumber -> IO ()
 setAvailable rb snr = Unboxed.unsafeWrite
   (rbAvailableBuffer rb)
-  (index (capacity rb) snr)
-  (availabilityFlag (capacity rb) snr)
+  (index cap snr)
+  (availabilityFlag cap snr)
+  where
+    cap = capacity rb
 {-# INLINE setAvailable #-}
 
 getAvailable :: RingBuffer e -> Int -> IO Int
@@ -250,15 +253,17 @@ publishBatch :: RingBuffer e -> SequenceNumber -> SequenceNumber -> IO ()
 publishBatch rb lo hi = mapM_ (setAvailable rb) [lo..hi]
 {-# INLINE publishBatch #-}
 
--- |
 get :: RingBuffer e -> SequenceNumber -> IO e
 get rb current = go
   where
+    cap :: Int64
+    cap = capacity rb
+
     availableValue :: Int
-    availableValue = availabilityFlag (capacity rb) current
+    availableValue = availabilityFlag cap current
 
     ix :: Int
-    ix = index (capacity rb) current
+    ix = index cap current
 
     go = do
       v <- getAvailable rb ix

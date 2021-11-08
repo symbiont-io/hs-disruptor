@@ -67,7 +67,7 @@ waitFor consumed rb (Sleep n) = go
     go = do
       produced <- getCursor rb
       if consumed < produced
-      then return produced
+      then return (min produced (consumed + fromIntegral (rbCapacity rb)))
       else do
         -- NOTE: Removing the sleep seems to cause non-termination... XXX: Why
         -- though? the consumer should be running on its own thread?

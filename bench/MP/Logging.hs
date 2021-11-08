@@ -80,7 +80,7 @@ main = mpsc setup producer consumer
             when (endOfBatch &&
                   getSequenceNumber snr ==
                   fromIntegral (iTERATIONS * nUMBER_OF_PRODUCERS - 1)) $ do
-              flushBuffer buf h
+              flushBuffer buf' h
               hFlush h
               putMVar consumerFinished ()
             return buf'

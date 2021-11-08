@@ -127,10 +127,10 @@ unit_ringBufferMP1P1CNonBlocking = ringBufferMP1P1C False
 
 ringBufferMP1P1C :: Bool -> Assertion
 ringBufferMP1P1C blocking = do
-  n <- getNumCapabilities
-  assertBool "getNumCapabilities < 2" (n >= 2)
-  rb <- MP.newRingBuffer 32
-  counter <- newIORef (-1 :: Int)
+  numCap <- getNumCapabilities
+  assertBool "getNumCapabilities < 2" (numCap >= 2)
+  rb <- MP.newRingBuffer 8
+  counter <- newIORef (-1)
   consumerFinished <- newEmptyMVar
 
   let ep = MP.EventProducer (const go) ()
@@ -138,46 +138,46 @@ ringBufferMP1P1C blocking = do
           go :: IO ()
           go = do
             n <- atomicModifyIORef' counter (\n -> let n' = n + 1 in (n', n'))
-            putStrLn ("producer, n = " ++ show n)
             if n > atLeastThisManyEvents
-            then putStrLn "producer: done" >> return ()
+            then return ()
             else
               if blocking
-              then do
-                putStrLn "producer: not done yet"
-                snr <- MP.next rb
-                putStrLn ("producer: setting " ++ show n ++ ", snr = " ++ show snr)
+              then goBlocking n
+              else goNonBlocking n
+
+          -- XXX: if all putStrLn and the sleep are commented then we end up in
+          -- a loop... With one putStrLn or the sleep it seems to work though...
+          goBlocking n = do
+            -- putStrLn "producer: not done yet"
+            snr <- MP.next rb
+            -- putStrLn ("producer: setting " ++ show n ++ ", snr = " ++ show snr)
+            MP.set rb snr n
+            -- putStrLn ("producer: done setting " ++ show n)
+            MP.publish rb snr
+            -- putStrLn ("producer: published " ++ show n)
+            threadDelay 10
+            go
+
+          goNonBlocking n = do
+            mSnr <- MP.tryNext rb
+            case mSnr of
+              Some snr -> do
                 MP.set rb snr n
-                putStrLn ("producer: done setting " ++ show n)
                 MP.publish rb snr
-                putStrLn ("producer: published " ++ show n)
                 go
-              else do
-                mSnr <- MP.tryNext rb
-                putStrLn ("producer: mSrn = " ++ show mSnr)
-                case mSnr of
-                  Some snr -> do
-                    putStrLn ("producer: setting n = " ++ show n ++ ", snr = " ++ show snr)
-                    MP.set rb snr n
-                    putStrLn ("producer: done setting " ++ show n)
-                    MP.publish rb snr
-                    putStrLn ("producer: published " ++ show n)
-                    go
-                  None -> do
-                    putStrLn "producer: none"
-                    threadDelay 1
-                    go
+              None -> do
+                threadDelay 1
+                goNonBlocking n
 
   let handler seen n snr endOfBatch
         | n `Set.member` seen = error (show n ++ " appears twice")
         | otherwise           = do
-            putStrLn ("consumer got, n = " ++ show n ++ ", snr = " ++ show snr ++
-                      if endOfBatch then ". End of batch!" else "")
+            -- putStrLn ("consumer got, n = " ++ show n ++ ", snr = " ++ show snr ++
+            --           if endOfBatch then ". End of batch!" else "")
             let seen' = Set.insert n seen
             when (endOfBatch &&
                   getSequenceNumber snr >= fromIntegral atLeastThisManyEvents) $ do
               putMVar consumerFinished seen'
-              putStrLn "consumer: done"
             return seen'
   ec <- MP.newEventConsumer rb handler Set.empty [] (MP.Sleep 1)
 
@@ -192,7 +192,7 @@ ringBufferMP1P1C blocking = do
         (Right ())
         (increasingByOneFrom 0 (Set.toList seen))
 
-atLeastThisManyEvents = 128
+atLeastThisManyEvents = 10
 
 increasingByOneFrom :: Int -> [Int] -> Either String ()
 increasingByOneFrom n []

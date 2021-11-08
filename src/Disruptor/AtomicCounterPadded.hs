@@ -53,10 +53,10 @@ incrCounter (I# incr) (AtomicCounter arr) = IO $ \s ->
     (# s', i #) -> (# s', I# (i +# incr) #)
 {-# INLINE incrCounter #-}
 
-getAndIncrCounter :: Int -> AtomicCounter -> IO (Int, Int)
+getAndIncrCounter :: Int -> AtomicCounter -> IO Int
 getAndIncrCounter (I# incr) (AtomicCounter arr) = IO $ \s ->
   case fetchAddIntArray# arr 0# incr s of
-    (# s', i #) -> (# s', (I# i, I# (i +# incr)) #)
+    (# s', i #) -> (# s', I# i #)
 {-# INLINE getAndIncrCounter #-}
 
 incrCounter_ :: Int -> AtomicCounter -> IO ()

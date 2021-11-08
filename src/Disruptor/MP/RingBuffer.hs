@@ -1,6 +1,5 @@
 module Disruptor.MP.RingBuffer where
 
-import Data.Bifunctor (bimap)
 import Control.Concurrent (threadDelay, yield)
 import Control.Exception (assert)
 import Control.Monad (when)
@@ -149,10 +148,12 @@ nextBatch rb n = assert (n > 0 && fromIntegral n <= capacity rb) $ do
   --                                nextSequence = current + fromIntegral n
   --                              in
   --                                (nextSequence, (current, nextSequence))
-  (current, nextSequence) <- bimap fromIntegral fromIntegral <$>
-                             {-# SCC incrCounter #-} getAndIncrCounter n (rbCursor rb)
+  current <- fromIntegral <$> {-# SCC incrCounter #-} getAndIncrCounter n (rbCursor rb)
 
-  let wrapPoint :: SequenceNumber
+  let nextSequence :: SequenceNumber
+      nextSequence = current + fromIntegral n
+
+      wrapPoint :: SequenceNumber
       wrapPoint = nextSequence - fromIntegral (capacity rb)
 
   cachedGatingSequence <- getCachedGatingSequence rb

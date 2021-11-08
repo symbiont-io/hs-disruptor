@@ -79,7 +79,9 @@ main = mpsc setup producer consumer
               return (appendBuffer bs buf')
             when (endOfBatch &&
                   getSequenceNumber snr ==
-                  fromIntegral (iTERATIONS * nUMBER_OF_PRODUCERS - 1)) $
+                  fromIntegral (iTERATIONS * nUMBER_OF_PRODUCERS - 1)) $ do
+              flushBuffer buf h
+              hFlush h
               putMVar consumerFinished ()
             return buf'
       ec <- newEventConsumer rb handler (newBuffer bUFFER_CAPACITY) [] (Sleep sLEEP_TIME)

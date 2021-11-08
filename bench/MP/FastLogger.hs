@@ -20,13 +20,13 @@ main = do
   producersFinished <- newIORef 0
   mpsc setup (producer producersFinished) (consumer producersFinished)
   where
-
     setup = do
       cleanup lOG_FILE
       newFileLoggerSet defaultBufSize lOG_FILE
 
     producer producersFinished lgrset = do
       replicateM_ iTERATIONS (pushLogStrLn lgrset lOG_MESSAGE)
+      flushLogStr lgrset
       atomicModifyIORef' producersFinished (\n -> (n + 1, ()))
 
     consumer producersFinished _lgrset consumerFinished = go

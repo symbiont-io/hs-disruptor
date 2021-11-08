@@ -66,7 +66,7 @@ waitFor consumed rb (Sleep n) = go
   where
     go = do
       produced <- readIORef (rbCursor rb)
-      if consumed <= produced
+      if consumed < produced
       then return produced
       else do
         threadDelay n -- NOTE: removing the sleep seems to cause

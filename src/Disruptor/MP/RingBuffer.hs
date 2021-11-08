@@ -1,5 +1,6 @@
 module Disruptor.MP.RingBuffer where
 
+import Data.Bifunctor (bimap)
 import Control.Concurrent (threadDelay, yield)
 import Control.Exception (assert)
 import Control.Monad (when)
@@ -148,30 +149,28 @@ nextBatch rb n = assert (n > 0 && fromIntegral n <= capacity rb) $ do
   --                                nextSequence = current + fromIntegral n
   --                              in
   --                                (nextSequence, (current, nextSequence))
-  nextSequence <- fromIntegral <$> {-# SCC incrCounter #-} incrCounter n (rbCursor rb)
+  (current, nextSequence) <- bimap fromIntegral fromIntegral <$>
+                             {-# SCC incrCounter #-} getAndIncrCounter n (rbCursor rb)
 
-  let current :: SequenceNumber
-      current = nextSequence - fromIntegral n
-
-      wrapPoint :: SequenceNumber
+  let wrapPoint :: SequenceNumber
       wrapPoint = nextSequence - fromIntegral (capacity rb)
 
   cachedGatingSequence <- getCachedGatingSequence rb
 
   when (wrapPoint > cachedGatingSequence || cachedGatingSequence > current) $
-    waitForConsumers wrapPoint
+    waitForConsumers current wrapPoint (rbGatingSequences rb)
 
   return nextSequence
   where
-    waitForConsumers :: SequenceNumber -> IO ()
-    waitForConsumers wrapPoint = go
+    waitForConsumers :: SequenceNumber -> SequenceNumber -> IORef [IORef SequenceNumber]
+                     -> IO ()
+    waitForConsumers current wrapPoint gatingSequences = go
       where
         go :: IO ()
         go = do
-          gatingSequence <- minimumSequence rb
+          gatingSequence <- minimumSequence' gatingSequences current
           if wrapPoint > gatingSequence
           then do
-            -- yield
             threadDelay 1
             go -- SPIN
           else setCachedGatingSequence rb gatingSequence

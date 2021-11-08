@@ -66,7 +66,7 @@ waitFor consumed rb (Sleep n) = go
   where
     go = do
       produced <- getCursor rb
-      if consumed <= produced
+      if consumed < produced
       then return produced
       else do
         -- NOTE: Removing the sleep seems to cause non-termination... XXX: Why

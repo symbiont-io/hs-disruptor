@@ -42,12 +42,12 @@ withEventConsumerOn capability ec k =
 
 newEventConsumer :: RingBuffer e -> EventHandler s e -> s -> [SequenceBarrier e]
                  -> WaitStrategy -> IO (EventConsumer s)
-newEventConsumer rb handler s0 _barriers (Sleep n) = do
+newEventConsumer rb handler s0 _barriers ws = do
   snrRef <- newIORef (-1)
 
   let go s = {-# SCC go #-} do
         mySnr <- readIORef snrRef
-        bSnr <- waitFor mySnr rb -- XXX: barriers
+        bSnr <- waitFor mySnr rb ws -- XXX: barriers
         -- XXX: what if handler throws exception? https://youtu.be/eTeWxZvlCZ8?t=2271
         s' <- {-# SCC go' #-} go' (mySnr + 1) bSnr s
         writeIORef snrRef bSnr
@@ -61,20 +61,19 @@ newEventConsumer rb handler s0 _barriers (Sleep n) = do
 
   return (EventConsumer snrRef go s0)
 
-waitFor :: SequenceNumber -> RingBuffer e -> IO SequenceNumber
-waitFor consumed rb = go
+waitFor :: SequenceNumber -> RingBuffer e -> WaitStrategy -> IO SequenceNumber
+waitFor consumed rb (Sleep n) = go
   where
     go = do
       produced <- readIORef (rbCursor rb)
       if consumed < produced
       then return produced
       else do
-        threadDelay 0 -- NOTE: removing the sleep seems to cause
+        threadDelay n -- NOTE: removing the sleep seems to cause
                       -- non-termination... XXX: Why though? the consumer should be
                       -- running on its own thread?
         go -- SPIN
-        -- ^ XXX: waitStrategy should be passed in and acted on here.
-        --
+
         -- XXX: Other wait strategies could be implemented here, e.g. we could
         -- try to recurse immediately here, and if there's no work after a
         -- couple of tries go into a takeMTVar sleep waiting for a producer to

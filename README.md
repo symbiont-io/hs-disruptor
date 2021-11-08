@@ -94,10 +94,11 @@ above section:
      since we know at which sequence number the last consumer is at we can
      easily make writes in batches as well;
 
-  4. Currently the producer doesn't apply any back-pressure, in a more realistic
-     example where the producer would, for example, create events from requests
-     made to a http server we could use back-pressure to tell the http server to
-     return status code 429 (too many requests);
+  4. Currently the producer doesn't apply any back-pressure when the ring buffer
+     is full, in a more realistic example where the producer would, for example,
+     create events from requests made to a http server we could use
+     back-pressure to tell the http server to return status code 429 (too many
+     requests);
 
   5. If we have one consumer that writes to the terminal and another one that
      concurrently writes to disk, we could add a third consumer that does
@@ -190,7 +191,13 @@ The same benchmark compared to other Haskell libraries:
     [`unagi-chan`](https://hackage.haskell.org/package/unagi-chan);
 
   * 1.9x faster than
-    [`lockfree-queue`](https://hackage.haskell.org/package/lockfree-queue);
+    [`lockfree-queue`](https://hackage.haskell.org/package/lockfree-queue).
+
+For a slightly more "real world" example, we modified the 3P1C test to have
+three producers that log messages while the consumer writes them to a log file
+and compared it to
+[`fast-logger`](https://hackage.haskell.org/package/fast-logger). The
+`hs-disruptor` benchmark has a throughput of 3:4 that of `fast-logger`.
 
 See the file [`benchmark.sh`](benchmark.sh) for full details about how the
 benchmarks are run.

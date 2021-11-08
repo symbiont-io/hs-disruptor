@@ -86,7 +86,7 @@ common bench-common
     , async
     , base
     , time
-
+    , directory
   other-modules:    Common
 
   -- Some of these options are taking from:
@@ -192,4 +192,16 @@ benchmark bench-mp-lockfree-queue
   import:        bench-common-mp
   main-is:       LockFreeQueue.hs
   build-depends: lockfree-queue
+  type:          exitcode-stdio-1.0
+
+benchmark bench-mp-logging
+  import:        bench-common-mp
+  main-is:       Logging.hs
+  build-depends: hs-disruptor, bytestring
+  type:          exitcode-stdio-1.0
+
+benchmark bench-mp-fast-logger
+  import:        bench-common-mp
+  main-is:       FastLogger.hs
+  build-depends: fast-logger
   type:          exitcode-stdio-1.0

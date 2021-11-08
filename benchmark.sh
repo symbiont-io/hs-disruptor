@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Inspired by: https://sled.rs/perf.html#experimental-design
 
-BENCHMARK_WORKLOAD1="bench-sp"
-BENCHMARK_WORKLOAD2="bench-sp-lockfree-queue"
+BENCHMARK_WORKLOAD1="bench-mp-logging"
+BENCHMARK_WORKLOAD2="bench-mp-fast-logger"
 BENCHMARK_NUMBER_OF_RUNS=5
 # TODO: +RTS --nonmoving-gc ?
 BENCHMARK_GHC_OPTS=("-threaded" "-rtsopts" "-with-rtsopts=-N")

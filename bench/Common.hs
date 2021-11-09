@@ -54,6 +54,26 @@ mpsc setup producer consumer = do
           cancel ac
           footer start end
 
+m10psc :: IO a -> (a -> IO ()) -> (a -> MVar () -> IO c) -> IO ()
+m10psc setup producer consumer = do
+  (r, consumerFinished, start) <- header setup
+  withAsync (producer r) $ \ap1 ->
+    withAsync (producer r) $ \ap2 ->
+      withAsync (producer r) $ \ap3 ->
+        withAsync (producer r) $ \ap4 ->
+          withAsync (producer r) $ \ap5 ->
+            withAsync (producer r) $ \ap6 ->
+              withAsync (producer r) $ \ap7 ->
+                withAsync (producer r) $ \ap8 ->
+                  withAsync (producer r) $ \ap9 ->
+                    withAsync (producer r) $ \ap10 ->
+                      withAsync (consumer r consumerFinished) $ \ac -> do
+                        () <- takeMVar consumerFinished
+                        end <- getCurrentTime
+                        mapM_ cancel [ap1, ap2, ap3, ap4, ap5, ap6, ap7, ap8, ap9, ap10]
+                        cancel ac
+                        footer start end
+
 header :: IO a -> IO (a, MVar (), UTCTime)
 header setup = do
   n <- getNumCapabilities

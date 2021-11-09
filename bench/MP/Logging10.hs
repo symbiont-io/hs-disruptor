@@ -1,9 +1,4 @@
--- This example is inspired by log4j's use of the disruptor pattern:
---
---   https://logging.apache.org/log4j/2.x/manual/async.html
---
--- The idea is that each producer corresponds to a concurrent thread that may
--- log messages and a single consumer then syncs the log messages to disk.
+{-# LANGUAGE NumericUnderscores #-}
 
 module Main where
 
@@ -14,16 +9,22 @@ import Data.ByteString.Builder
 import qualified Data.ByteString.Char8 as BS
 import System.IO
 
-import Common
+
 import Disruptor.MP
+import Common hiding (nUMBER_OF_PRODUCERS, iTERATIONS)
 
 ------------------------------------------------------------------------
+
+iTERATIONS = 1_000_000
+
+nUMBER_OF_PRODUCERS :: Int
+nUMBER_OF_PRODUCERS = 10
 
 lOG_MESSAGE :: ByteString
 lOG_MESSAGE = BS.pack "some random string to log\n"
 
 lOG_FILE :: FilePath
-lOG_FILE = "/tmp/hs-disruptor-bench-mp-logger.log"
+lOG_FILE = "/tmp/hs-disruptor-bench-mp-logger10.log"
 
 data Buffer = Buffer
   { bufferCapacity :: !Int
@@ -49,7 +50,7 @@ flushBuffer buf h = do
   return (newBuffer (bufferCapacity buf))
 
 main :: IO ()
-main = mpsc setup producer consumer
+main = m10psc setup producer consumer
   where
     setup = do
       cleanup lOG_FILE

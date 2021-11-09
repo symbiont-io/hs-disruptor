@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Inspired by: https://sled.rs/perf.html#experimental-design
 
-BENCHMARK_WORKLOAD1="bench-mp-logging"
-BENCHMARK_WORKLOAD2="bench-mp-fast-logger"
+BENCHMARK_WORKLOAD1="bench-mp-logging10"
+BENCHMARK_WORKLOAD2="bench-mp-fast-logger10"
 BENCHMARK_NUMBER_OF_RUNS=5
 # TODO: +RTS --nonmoving-gc ?
 BENCHMARK_GHC_OPTS=("-threaded" "-rtsopts" "-with-rtsopts=-N")
@@ -76,10 +76,10 @@ for i in $(seq ${BENCHMARK_NUMBER_OF_RUNS}); do
     echo "Running benchmark run ${i}"
     perf stat --event="${BENCHMARK_PERF_EVENTS}" \
          cabal run "${BENCHMARK_CABAL_RUN_OPTS[@]}" "${BENCHMARK_WORKLOAD1}" \
-         &>> "/tmp/${BENCHMARK_WORKLOAD1}.txt"
+         2>&1 | tee --append "/tmp/${BENCHMARK_WORKLOAD1}.txt"
     perf stat --event="${BENCHMARK_PERF_EVENTS}" \
          cabal run "${BENCHMARK_CABAL_RUN_OPTS[@]}" "${BENCHMARK_WORKLOAD2}" \
-         &>> "/tmp/${BENCHMARK_WORKLOAD2}.txt"
+         2>&1 | tee --append "/tmp/${BENCHMARK_WORKLOAD2}.txt"
 
     # XXX: Can't get the below to work, ${BENCHMARK_WORKLOAD} env var doesn't
     # get interpolated correctly into the string?

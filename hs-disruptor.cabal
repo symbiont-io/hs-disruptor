@@ -205,3 +205,15 @@ benchmark bench-mp-fast-logger
   main-is:       FastLogger.hs
   build-depends: fast-logger
   type:          exitcode-stdio-1.0
+
+benchmark bench-mp-logging10
+  import:        bench-common-mp
+  main-is:       Logging10.hs
+  build-depends: hs-disruptor, bytestring
+  type:          exitcode-stdio-1.0
+
+benchmark bench-mp-fast-logger10
+  import:        bench-common-mp
+  main-is:       FastLogger10.hs
+  build-depends: fast-logger
+  type:          exitcode-stdio-1.0

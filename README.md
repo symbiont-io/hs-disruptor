@@ -197,7 +197,9 @@ For a slightly more "real world" example, we modified the 3P1C test to have
 three producers that log messages while the consumer writes them to a log file
 and compared it to
 [`fast-logger`](https://hackage.haskell.org/package/fast-logger). The
-`hs-disruptor` benchmark has a throughput of 3:4 that of `fast-logger`.
+`hs-disruptor` benchmark has a throughput of 3:4 that of `fast-logger`. When we
+bump it to ten concurrently logging threads the `hs-disruptor` benchmark has a
+throughput of 10:7 that of `fast-logger`.
 
 See the file [`benchmark.sh`](benchmark.sh) for full details about how the
 benchmarks are run.

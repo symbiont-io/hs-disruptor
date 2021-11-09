@@ -65,9 +65,12 @@ waitFor :: SequenceNumber -> RingBuffer e -> WaitStrategy -> IO SequenceNumber
 waitFor consumed rb (Sleep n) = go
   where
     go = do
-      produced <- getCursor rb
-      if consumed <= produced
-      then return produced
+      claimedSequence <- getCursor rb
+      if consumed < claimedSequence
+      -- `claimedSequence` may be much higher than the the capacity of the ring
+      -- buffer, so we need to guarantee that every consumer makes batches that
+      -- are at most `rbCapacity rb` big.
+      then return (min claimedSequence (consumed + fromIntegral (rbCapacity rb)))
       else do
         -- NOTE: Removing the sleep seems to cause non-termination... XXX: Why
         -- though? the consumer should be running on its own thread?

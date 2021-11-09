@@ -145,17 +145,10 @@ ringBufferMP1P1C blocking = do
               then goBlocking n
               else goNonBlocking n
 
-          -- XXX: if all putStrLn and the sleep are commented then we end up in
-          -- a loop... With one putStrLn or the sleep it seems to work though...
           goBlocking n = do
-            -- putStrLn "producer: not done yet"
             snr <- MP.next rb
-            -- putStrLn ("producer: setting " ++ show n ++ ", snr = " ++ show snr)
             MP.set rb snr n
-            -- putStrLn ("producer: done setting " ++ show n)
             MP.publish rb snr
-            -- putStrLn ("producer: published " ++ show n)
-            threadDelay 10
             go
 
           goNonBlocking n = do

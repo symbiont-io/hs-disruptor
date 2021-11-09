@@ -43,6 +43,7 @@ data RingBuffer e = RingBuffer
   -- | References to the last consumers' sequence numbers, used in order to
   -- avoid wrapping the buffer and overwriting events that have not been
   -- consumed yet.
+  -- TODO: use vector instead of list.
   , rbGatingSequences :: {-# UNPACK #-} !(IORef [IORef SequenceNumber])
   -- | Cached value of computing the last consumers' sequence numbers using the
   -- above references.
@@ -92,8 +93,10 @@ setCachedGatingSequence rb = writeIORef (rbCachedGatingSequence rb)
 setAvailable :: RingBuffer e -> SequenceNumber -> IO ()
 setAvailable rb snr = Unboxed.unsafeWrite
   (rbAvailableBuffer rb)
-  (index (capacity rb) snr)
-  (availabilityFlag (capacity rb) snr)
+  (index cap snr)
+  (availabilityFlag cap snr)
+  where
+    cap = capacity rb
 {-# INLINE setAvailable #-}
 
 getAvailable :: RingBuffer e -> Int -> IO Int
@@ -148,10 +151,10 @@ nextBatch rb n = assert (n > 0 && fromIntegral n <= capacity rb) $ do
   --                                nextSequence = current + fromIntegral n
   --                              in
   --                                (nextSequence, (current, nextSequence))
-  nextSequence <- fromIntegral <$> {-# SCC incrCounter #-} incrCounter n (rbCursor rb)
+  current <- fromIntegral <$> {-# SCC incrCounter #-} getAndIncrCounter n (rbCursor rb)
 
-  let current :: SequenceNumber
-      current = nextSequence - fromIntegral n
+  let nextSequence :: SequenceNumber
+      nextSequence = current + fromIntegral n
 
       wrapPoint :: SequenceNumber
       wrapPoint = nextSequence - fromIntegral (capacity rb)
@@ -159,19 +162,19 @@ nextBatch rb n = assert (n > 0 && fromIntegral n <= capacity rb) $ do
   cachedGatingSequence <- getCachedGatingSequence rb
 
   when (wrapPoint > cachedGatingSequence || cachedGatingSequence > current) $
-    waitForConsumers wrapPoint
+    waitForConsumers current wrapPoint (rbGatingSequences rb)
 
   return nextSequence
   where
-    waitForConsumers :: SequenceNumber -> IO ()
-    waitForConsumers wrapPoint = go
+    waitForConsumers :: SequenceNumber -> SequenceNumber -> IORef [IORef SequenceNumber]
+                     -> IO ()
+    waitForConsumers current wrapPoint gatingSequences = go
       where
         go :: IO ()
         go = do
-          gatingSequence <- minimumSequence rb
+          gatingSequence <- minimumSequence' gatingSequences current
           if wrapPoint > gatingSequence
           then do
-            -- yield
             threadDelay 1
             go -- SPIN
           else setCachedGatingSequence rb gatingSequence
@@ -250,15 +253,17 @@ publishBatch :: RingBuffer e -> SequenceNumber -> SequenceNumber -> IO ()
 publishBatch rb lo hi = mapM_ (setAvailable rb) [lo..hi]
 {-# INLINE publishBatch #-}
 
--- |
 get :: RingBuffer e -> SequenceNumber -> IO e
 get rb current = go
   where
+    cap :: Int64
+    cap = capacity rb
+
     availableValue :: Int
-    availableValue = availabilityFlag (capacity rb) current
+    availableValue = availabilityFlag cap current
 
     ix :: Int
-    ix = index (capacity rb) current
+    ix = index cap current
 
     go = do
       v <- getAvailable rb ix

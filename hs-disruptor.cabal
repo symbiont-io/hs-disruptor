@@ -6,7 +6,7 @@ description:
   See README at <https://github.com/symbiont-io/hs-disruptor#readme>
 
 bug-reports:        https://github.com/symbiont-io/hs-disruptor/issues
-license:
+license:            MIT
 license-file:       LICENSE
 author:             Stevan Andjelkovic, Daniel Gustafsson
 maintainer:         symbiont-stevan-andjelkovic@users.noreply.github.com

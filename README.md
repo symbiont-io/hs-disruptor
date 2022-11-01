@@ -235,6 +235,10 @@ issue before embarking on any big changes though.
   * [Designing for Performance](https://youtube.com/watch?v=fDGWWpHlzvw) by
     Martin Thompson (GOTO 2015);
 
+  * [A quest for predictable latency with Java
+    concurrency](https://vimeo.com/181814364) Martin Thompson
+    (JavaZone 2016);
+
   * [Evolution of Financial Exchange
      Architectures](https://www.youtube.com/watch?v=qDhTjE0XmkE) by Martin
      Thompson (QCon 2020)
